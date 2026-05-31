@@ -1,5 +1,7 @@
 const http = require('http');
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 
 const PORT = 3001;
 const ANTHROPIC_HOST = 'api.anthropic.com';
@@ -15,43 +17,61 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  let body = '';
-  req.on('data', chunk => { body += chunk; });
-  req.on('end', () => {
-    const headers = {
-      'Content-Type': 'application/json',
-      'anthropic-version': req.headers['anthropic-version'] || '2023-06-01',
-    };
-    if (req.headers['x-api-key']) headers['x-api-key'] = req.headers['x-api-key'];
-    if (body) headers['Content-Length'] = Buffer.byteLength(body);
-
-    const options = {
-      hostname: ANTHROPIC_HOST,
-      port: 443,
-      path: req.url,
-      method: req.method,
-      headers,
-    };
-
-    const proxyReq = https.request(options, proxyRes => {
-      res.writeHead(proxyRes.statusCode, {
+  // Proxy para Anthropic
+  if (req.url.startsWith('/v1/')) {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      const headers = {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'anthropic-version': req.headers['anthropic-version'] || '2023-06-01',
+      };
+      if (req.headers['x-api-key']) headers['x-api-key'] = req.headers['x-api-key'];
+      if (body) headers['Content-Length'] = Buffer.byteLength(body);
+
+      const options = {
+        hostname: ANTHROPIC_HOST,
+        port: 443,
+        path: req.url,
+        method: req.method,
+        headers,
+      };
+
+      const proxyReq = https.request(options, proxyRes => {
+        res.writeHead(proxyRes.statusCode, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        proxyRes.pipe(res);
       });
-      proxyRes.pipe(res);
-    });
 
-    proxyReq.on('error', err => {
-      res.writeHead(502);
-      res.end(JSON.stringify({ error: err.message }));
-    });
+      proxyReq.on('error', err => {
+        res.writeHead(502);
+        res.end(JSON.stringify({ error: err.message }));
+      });
 
-    if (body) proxyReq.write(body);
-    proxyReq.end();
+      if (body) proxyReq.write(body);
+      proxyReq.end();
+    });
+    return;
+  }
+
+  // Servir ficheiros estáticos
+  const filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      res.end('Not found');
+      return;
+    }
+    const ext = path.extname(filePath);
+    const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' }[ext] || 'text/plain';
+    res.writeHead(200, { 'Content-Type': mime });
+    res.end(data);
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`Proxy a correr → http://localhost:${PORT}`);
-  console.log(`Reencaminha para → https://${ANTHROPIC_HOST}`);
+  console.log(`Servidor a correr → http://localhost:${PORT}`);
+  console.log(`Proxy Anthropic  → https://${ANTHROPIC_HOST}`);
 });
