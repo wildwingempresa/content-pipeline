@@ -626,15 +626,17 @@ async function gerarConteudo() {
   const area = document.getElementById('output-area');
   area.innerHTML = '<span class="output-placeholder loading-dots">A gerar conteúdo</span>';
 
-  const systemPrompt = `És um especialista em conteúdo UGC para a marca portuguesa Pés de Algodão, que vende sapatos-meia para bebés (Sapatos Exploradores™). Sola antiderrapante e flexível, caixa anatómica larga, tecido respirável, fácil de calçar, lavável à máquina. Tom: mãe a falar com mãe, genuíno, nunca anúncio. O ângulo dos primeiros passos é o mais forte (50% do conteúdo). Nunca dizer "graças a estes sapatos começou a andar" — dizer "notei que fica mais à vontade". CTA com urgência real.`;
+  const systemPrompt = `És um especialista em conteúdo UGC para a marca portuguesa Pés de Algodão, que vende sapatos-meia para bebés (Sapatos Exploradores™). Sola antiderrapante e flexível, caixa anatómica larga, tecido respirável, fácil de calçar, lavável à máquina. Tom: mãe a falar com mãe, genuíno, nunca anúncio. O ângulo dos primeiros passos é o mais forte (50% do conteúdo). Nunca dizer "graças a estes sapatos começou a andar" — dizer "notei que fica mais à vontade". CTA com urgência real.
+
+FORMATAÇÃO OBRIGATÓRIA: Não uses markdown. Sem #, sem **, sem *,  sem ---, sem ___, sem backticks, sem bullet points com -. Títulos de secções em MAIÚSCULAS. Resto em texto simples. Usa apenas traços — para separar o nome da cena do tempo (ex: HOOK — 0 a 3 segundos).`;
 
   const userPrompt = `Gera um ${tipoLabel} para a Pés de Algodão.
 Ângulo: ${angulo} | Duração: ${duracao} | Tom: ${tom} | Persona: ${persona}
 ${notas?'Notas: '+notas:''}
 
-${tipo==='guiao'?`Estrutura: Cabeçalho (PÉS DE ALGODÃO / Guião UGC / título / duração / formato / tom) → "O que precisas de saber antes de gravar" → Guião cena a cena com emojis (🪝 Hook, 📌 Contexto, ✨ O que é diferente, 💜 Observação natural, 📣 CTA) cada um com texto e sugestão de visual → Dicas de gravação (💡☀️⏱📱🔇🏠👕🎤🗣️🪝❤️).`:''}
-${tipo==='broll'?`Lista de pelo menos 15 b-rolls. Para cada um: número, CATEGORIA EM MAIÚSCULAS, título curto, descrição detalhada (3-5 frases) do que filmar: ângulo, movimento, expressão, duração, ambiente.`:''}
-${tipo==='script'?`Script de áudio pronto a gravar em voz. Texto corrido sem stage directions. Parágrafos curtos. Ritmo natural de fala. Hook forte. CTA urgente no final.`:''}`;
+${tipo==='guiao'?`Estrutura: Cabeçalho (PÉS DE ALGODÃO / Guião UGC / título / duração / formato / tom) depois a secção O QUE PRECISAS DE SABER ANTES DE GRAVAR depois o guião cena a cena (HOOK — 0 a 3 segundos, CONTEXTO — 4 a 10 segundos, O QUE É DIFERENTE — 11 a 25 segundos, OBSERVAÇÃO NATURAL — 26 a 35 segundos, CTA — 36 a 45 segundos) cada cena com "O que dizer:" seguido do texto e "Visual:" seguido da sugestão. Sem emojis. Sem markdown.`:''}
+${tipo==='broll'?`Lista de pelo menos 15 b-rolls numerados. Para cada um: número, CATEGORIA EM MAIÚSCULAS, título curto, descrição detalhada (3-5 frases) do que filmar: ângulo, movimento, expressão, duração, ambiente. Sem emojis. Sem markdown.`:''}
+${tipo==='script'?`Script de áudio pronto a gravar em voz. Texto corrido sem stage directions. Parágrafos curtos. Ritmo natural de fala. Hook forte. CTA urgente no final. Sem emojis. Sem markdown.`:''}`;
 
   try {
     const r = await fetch('http://localhost:3001/v1/messages', {
