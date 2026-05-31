@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Content Pipeline — Pés de Algodão</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
 <style>
   :root {
     --bg: #0e0e0f;
@@ -371,7 +372,7 @@
           </div>
           <div style="display:flex;gap:10px;margin-top:12px;">
             <button class="btn btn-primary" onclick="guardarGoogleClientId()">Guardar Client ID</button>
-            <button class="btn btn-ghost" onclick="ligarGoogleSheets()">Ligar ao Google Sheets</button>
+            <button class="btn btn-ghost" onclick="ligarGoogleSheets()">Ligar ao Google Drive</button>
           </div>
           <div id="google-status" style="margin-top:12px;font-size:12px;color:var(--text3);"></div>
         </div>
@@ -528,7 +529,7 @@ async function testarAnthropicKey() {
     const r = await fetch('http://localhost:3001/v1/messages', {
       method:'POST',
       headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01'},
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:10, messages:[{role:'user',content:'hi'}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:10, messages:[{role:'user',content:'hi'}] })
     });
     if (r.ok) { showNotif('✓','Ligação à API confirmada!'); checkStatus(); }
     else { showNotif('✗','Erro — verifica se o servidor está a correr'); }
@@ -552,11 +553,10 @@ function guardarSheetId() {
 function ligarGoogleSheets() {
   const clientId = localStorage.getItem('google_client_id');
   if (!clientId) { showNotif('!','Guarda o Client ID primeiro'); return; }
-  const scope = 'https://www.googleapis.com/auth/spreadsheets';
+  const scope = 'https://www.googleapis.com/auth/drive.file';
   const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
   const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${encodeURIComponent(scope)}`;
-  window.open(url, '_blank', 'width=500,height=600');
-  document.getElementById('google-status').textContent = 'Janela de autorização aberta. Após autorizar, o token ficará guardado.';
+  window.location.href = url;
 }
 
 function renderSettings() {
@@ -578,6 +578,13 @@ function renderSettings() {
 
   if (clientId) document.getElementById('input-google-client-id').value = clientId;
   if (sheetId) document.getElementById('input-sheet-id').value = sheetId;
+
+  const driveToken = localStorage.getItem('google_access_token');
+  const driveStatus = document.getElementById('google-status');
+  if (driveStatus) {
+    driveStatus.textContent = driveToken ? '✓ Google Drive ligado — token ativo' : 'Google Drive não ligado. Clica em "Ligar ao Google Drive" para autorizar.';
+    driveStatus.style.color = driveToken ? 'var(--green)' : 'var(--text3)';
+  }
 }
 
 function checkStatus() {
@@ -633,7 +640,7 @@ ${tipo==='script'?`Script de áudio pronto a gravar em voz. Texto corrido sem st
     const r = await fetch('http://localhost:3001/v1/messages', {
       method:'POST',
       headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01'},
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system:systemPrompt, messages:[{role:'user',content:userPrompt}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1000, system:systemPrompt, messages:[{role:'user',content:userPrompt}] })
     });
     const data = await r.json();
     const text = data.content?.find(b=>b.type==='text')?.text || 'Erro ao gerar.';
@@ -666,12 +673,16 @@ function renderBiblioteca() {
   const icons = {guiao:'📋',broll:'🎬',script:'🎙️'};
   const labels = {guiao:'GUIÃO',broll:'B-ROLLS',script:'SCRIPT ÁUDIO'};
   if (!items.length) { grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:80px 0;"><div class="empty-icon">◫</div><div class="empty-text">Sem conteúdo</div><div class="empty-sub">Gera conteúdo e guarda aqui</div></div>`; return; }
-  grid.innerHTML = items.map((c,i) => `<div class="content-card" onclick="verConteudo(${state.conteudos.indexOf(c)})">
+  grid.innerHTML = items.map(c => { const idx = state.conteudos.indexOf(c); return `<div class="content-card" onclick="verConteudo(${idx})">
     <div class="content-card-type">${icons[c.tipo]} ${labels[c.tipo]}</div>
     <div class="content-card-title">${c.titulo.split('—').slice(-1)[0]?.trim()||c.titulo}</div>
     <div class="content-card-angle">${c.angulo}</div>
     <div class="content-card-footer"><span class="tag ${c.estado==='disponivel'?'tag-green':'tag-amber'}">${c.estado}</span><span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${c.data}</span></div>
-  </div>`).join('');
+    <div style="display:flex;gap:6px;margin-top:10px;" onclick="event.stopPropagation()">
+      <button class="btn btn-ghost" style="flex:1;font-size:11px;padding:5px 8px;" onclick="exportarParaDrive(${idx},event)">↗ Exportar para Drive</button>
+      <button class="btn btn-danger" style="font-size:11px;padding:5px 8px;" onclick="eliminarConteudo(${idx},event)">✕ Eliminar</button>
+    </div>
+  </div>`; }).join('');
 }
 
 function verConteudo(idx) {
@@ -887,8 +898,108 @@ function showNotif(icon, text) {
   notifTimer = setTimeout(()=>n.classList.remove('show'), 3000);
 }
 
+// ══════════════════════════════════════════
+// GOOGLE DRIVE — EXPORT
+// ══════════════════════════════════════════
+function captureOAuthToken() {
+  const hash = window.location.hash;
+  if (!hash || !hash.includes('access_token=')) return;
+  const params = new URLSearchParams(hash.slice(1));
+  const token = params.get('access_token');
+  if (token) {
+    localStorage.setItem('google_access_token', token);
+    window.history.replaceState({}, '', window.location.pathname);
+    setTimeout(() => showNotif('✓', 'Google Drive ligado com sucesso!'), 300);
+  }
+}
+
+function eliminarConteudo(idx, event) {
+  event.stopPropagation();
+  if (!confirm('Eliminar este conteúdo da biblioteca?')) return;
+  state.conteudos.splice(idx, 1);
+  saveState(); updateBadges(); renderBiblioteca();
+  showNotif('✓', 'Conteúdo eliminado');
+}
+
+async function exportarParaDrive(idx, event) {
+  event.stopPropagation();
+  const c = state.conteudos[idx];
+  const token = localStorage.getItem('google_access_token');
+  if (!token) { showNotif('!', 'Liga o Google Drive nas Definições primeiro'); return; }
+
+  showNotif('...', 'A criar documento .docx...');
+  try {
+    const { Document, Paragraph, TextRun, HeadingLevel, Packer } = window.docx;
+    const children = [
+      new Paragraph({ text: c.titulo, heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({ children: [new TextRun({ text: `Ângulo: ${c.angulo}  |  Data: ${c.data}`, italics: true, color: '888888' })] }),
+      new Paragraph({ text: '' }),
+      ...c.conteudo.split('\n').map(l => new Paragraph({ children: [new TextRun(l || '')] }))
+    ];
+    const doc = new Document({ sections: [{ properties: {}, children }] });
+    const blob = await Packer.toBlob(doc);
+
+    showNotif('...', 'A localizar pasta no Drive...');
+    const pastaLabels = { guiao: 'Guiões', broll: 'B-Rolls', script: 'Scripts' };
+    const rootId = await findOrCreateFolder('Content Pipeline', null, token);
+    const subId = await findOrCreateFolder(pastaLabels[c.tipo], rootId, token);
+
+    showNotif('...', 'A fazer upload...');
+    const nomeFile = c.titulo.replace(/[\/\\?%*:|"<>]/g, '-').slice(0, 80) + '.docx';
+    const fileId = await uploadToDrive(blob, nomeFile, subId, token);
+
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+
+    showNotif('✓', 'Exportado para o Drive!');
+    window.open(`https://drive.google.com/file/d/${fileId}/view`, '_blank');
+  } catch(e) {
+    console.error('exportarParaDrive:', e);
+    if (String(e).includes('401')) {
+      localStorage.removeItem('google_access_token');
+      showNotif('!', 'Sessão Google expirada — volta a ligar nas Definições');
+    } else {
+      showNotif('✗', 'Erro: ' + e.message);
+    }
+  }
+}
+
+async function findOrCreateFolder(name, parentId, token) {
+  const cacheKey = `drive_folder_${name}_${parentId||'root'}`;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) return cached;
+  const body = { name, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) body.parents = [parentId];
+  const r = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
+  const folder = await r.json();
+  localStorage.setItem(cacheKey, folder.id);
+  return folder.id;
+}
+
+async function uploadToDrive(blob, filename, folderId, token) {
+  const metadata = { name: filename, parents: [folderId], mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', blob);
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: form
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
+  return (await r.json()).id;
+}
+
 // INIT
-loadState(); updateBadges(); renderDashboard(); checkStatus();
+loadState(); updateBadges(); renderDashboard(); checkStatus(); captureOAuthToken();
 </script>
 </body>
 </html>
