@@ -350,9 +350,12 @@
         <div class="settings-section">
           <div class="settings-title">Anthropic API Key</div>
           <div class="settings-sub">Necessária para gerar guiões, b-rolls e scripts áudio.</div>
+          <div id="anthropic-key-status" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:16px;border:1px solid var(--border);background:var(--surface2);">
+            <span id="anthropic-key-status-dot" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--amber);"></span>
+            <span id="anthropic-key-status-text" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);">Sem API key guardada</span>
+          </div>
           <div class="form-group">
-            <input class="form-input" id="input-anthropic-key" type="password" placeholder="sk-ant-...">
-            <div id="anthropic-key-display" class="key-display" style="display:none;"></div>
+            <input class="form-input" id="input-anthropic-key" type="password" placeholder="sk-ant-... (cola aqui para guardar)">
           </div>
           <div style="display:flex;gap:10px;margin-top:12px;">
             <button class="btn btn-primary" onclick="guardarAnthropicKey()">Guardar key</button>
@@ -506,12 +509,14 @@ function guardarAnthropicKey() {
   localStorage.setItem('anthropic_key', key);
   document.getElementById('input-anthropic-key').value = '';
   checkStatus();
+  renderSettings();
   showNotif('✓','API key guardada com sucesso');
 }
 
 function removerAnthropicKey() {
   localStorage.removeItem('anthropic_key');
   checkStatus();
+  renderSettings();
   showNotif('✓','API key removida');
 }
 
@@ -558,7 +563,19 @@ function renderSettings() {
   const key = localStorage.getItem('anthropic_key');
   const clientId = localStorage.getItem('google_client_id');
   const sheetId = localStorage.getItem('sheet_id');
-  if (key) { document.getElementById('anthropic-key-display').style.display='block'; document.getElementById('anthropic-key-display').textContent = key.slice(0,20)+'...'+key.slice(-4); }
+
+  const dot = document.getElementById('anthropic-key-status-dot');
+  const txt = document.getElementById('anthropic-key-status-text');
+  if (key) {
+    dot.style.background = 'var(--green)';
+    txt.style.color = 'var(--green)';
+    txt.textContent = '✓ API key guardada — ' + key.slice(0,14) + '...' + key.slice(-4);
+  } else {
+    dot.style.background = 'var(--amber)';
+    txt.style.color = 'var(--text2)';
+    txt.textContent = 'Sem API key guardada';
+  }
+
   if (clientId) document.getElementById('input-google-client-id').value = clientId;
   if (sheetId) document.getElementById('input-sheet-id').value = sheetId;
 }
