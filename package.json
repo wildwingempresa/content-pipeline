@@ -1,0 +1,9 @@
+{
+  "name": "content-pipeline",
+  "version": "1.0.0",
+  "description": "Content Pipeline — Pés de Algodão",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

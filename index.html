@@ -525,9 +525,9 @@ async function testarAnthropicKey() {
   if (!key) { showNotif('!','Sem API key guardada'); return; }
   showNotif('...','A testar ligação...');
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetch('http://localhost:3001/v1/messages', {
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
       body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:10, messages:[{role:'user',content:'hi'}] })
     });
     if (r.ok) { showNotif('✓','Ligação à API confirmada!'); checkStatus(); }
@@ -630,9 +630,9 @@ ${tipo==='broll'?`Lista de pelo menos 15 b-rolls. Para cada um: número, CATEGOR
 ${tipo==='script'?`Script de áudio pronto a gravar em voz. Texto corrido sem stage directions. Parágrafos curtos. Ritmo natural de fala. Hook forte. CTA urgente no final.`:''}`;
 
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetch('http://localhost:3001/v1/messages', {
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
       body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system:systemPrompt, messages:[{role:'user',content:userPrompt}] })
     });
     const data = await r.json();
