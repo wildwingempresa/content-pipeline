@@ -921,6 +921,92 @@ function eliminarConteudo(idx, event) {
   showNotif('✓', 'Conteúdo eliminado');
 }
 
+function buildDocxChildren(c) {
+  const { Paragraph, TextRun, AlignmentType, BorderStyle, ShadingType } = window.docx;
+
+  const SPECS = [
+    'Este guião é uma orientação. Adapta tudo ao teu estilo e à tua forma natural de falar. Se uma frase não parece tua, muda-a.',
+    'Filma com boa luz natural. Idealmente junto a uma janela durante o dia.',
+    'Filma na vertical (9:16) com a câmara nativa do telemóvel. Nunca dentro da app do TikTok ou Instagram.',
+    'Desliga o ar condicionado, ventoinha ou qualquer ruído de fundo antes de gravar.',
+    'Fundo limpo e neutro. Sem confusão visual atrás de ti.',
+    'Evita roupa com logos ou marcas visíveis.',
+    'Fala alto, claro e com energia.',
+    'Não leias. Interioriza a ideia e grava como se estivesses a falar para os teus seguidores.',
+    'Os primeiros 3 segundos são tudo. Grava o hook 3 ou 4 vezes e fica com a melhor.',
+    'Mostra o produto como se o usasses genuinamente.',
+  ];
+
+  const out = [];
+
+  // Cabeçalho
+  out.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 0, after: 160 },
+    children: [new TextRun({ text: 'Pés de Algodão', bold: true, size: 52 })],
+  }));
+  out.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 0, after: 400 },
+    children: [new TextRun({ text: c.titulo.split('—').pop().trim(), size: 28 })],
+  }));
+
+  // Caixa de especificações
+  SPECS.forEach((spec, i) => {
+    out.push(new Paragraph({
+      shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'EFEFEF' },
+      indent: { left: 200, right: 200 },
+      spacing: { before: i === 0 ? 160 : 40, after: i === SPECS.length - 1 ? 280 : 40 },
+      children: [new TextRun({ text: '  •  ' + spec, size: 18, color: '444444' })],
+    }));
+  });
+
+  // Conteúdo — parsear cenas
+  const stripEmoji = s => s.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{200D}]/gu, '').trim();
+  let firstScene = true;
+
+  for (const raw of c.conteudo.split('\n')) {
+    const line = stripEmoji(raw);
+    if (!line) continue;
+
+    const isSceneHeader = line.includes('—') && /\d/.test(line) && line.length < 100;
+    const isDizer = /^o que dizer/i.test(line);
+    const isVisual = /^visual/i.test(line);
+
+    if (isSceneHeader) {
+      if (!firstScene) {
+        out.push(new Paragraph({
+          border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC', space: 4 } },
+          spacing: { before: 280, after: 280 },
+          children: [],
+        }));
+      }
+      firstScene = false;
+      out.push(new Paragraph({
+        spacing: { before: 200, after: 80 },
+        children: [new TextRun({ text: line, bold: true, size: 28 })],
+      }));
+    } else if (isDizer) {
+      out.push(new Paragraph({
+        spacing: { before: 80, after: 80 },
+        children: [new TextRun({ text: line, italics: true, size: 22 })],
+      }));
+    } else if (isVisual) {
+      out.push(new Paragraph({
+        spacing: { before: 80, after: 80 },
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
+    } else {
+      out.push(new Paragraph({
+        spacing: { before: 60, after: 60 },
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
+    }
+  }
+
+  return out;
+}
+
 async function exportarParaDrive(idx, event) {
   event.stopPropagation();
   const c = state.conteudos[idx];
@@ -929,13 +1015,8 @@ async function exportarParaDrive(idx, event) {
 
   showNotif('...', 'A criar documento .docx...');
   try {
-    const { Document, Paragraph, TextRun, HeadingLevel, Packer } = window.docx;
-    const children = [
-      new Paragraph({ text: c.titulo, heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ children: [new TextRun({ text: `Ângulo: ${c.angulo}  |  Data: ${c.data}`, italics: true, color: '888888' })] }),
-      new Paragraph({ text: '' }),
-      ...c.conteudo.split('\n').map(l => new Paragraph({ children: [new TextRun(l || '')] }))
-    ];
+    const { Document, Packer } = window.docx;
+    const children = buildDocxChildren(c);
     const doc = new Document({ sections: [{ properties: {}, children }] });
     const blob = await Packer.toBlob(doc);
 
