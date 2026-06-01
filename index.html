@@ -584,7 +584,8 @@ function guardarSheetId() {
 function ligarGoogleSheets() {
   const clientId = localStorage.getItem('google_client_id');
   if (!clientId) { showNotif('!','Guarda o Client ID primeiro'); return; }
-  const scope = 'https://www.googleapis.com/auth/drive.file';
+  const scope = 'https://www.googleapis.com/auth/drive';
+  localStorage.removeItem('google_access_token');
   const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
   const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${encodeURIComponent(scope)}`;
   window.location.href = url;
