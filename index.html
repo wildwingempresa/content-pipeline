@@ -1190,9 +1190,6 @@ async function exportarParaDrive(idx, event) {
 }
 
 async function findOrCreateFolder(name, parentId, token) {
-  const cacheKey = `drive_folder_${name}_${parentId||'root'}`;
-  const cached = localStorage.getItem(cacheKey);
-  if (cached) return cached;
   const parent = parentId || 'root';
   const q = encodeURIComponent(`name = '${name.replace(/'/g,"\\'")}' and '${parent}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
   const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&pageSize=1`, {
@@ -1200,10 +1197,7 @@ async function findOrCreateFolder(name, parentId, token) {
   });
   if (!search.ok) { const e = await search.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${search.status}`); }
   const found = await search.json();
-  if (found.files && found.files.length > 0) {
-    localStorage.setItem(cacheKey, found.files[0].id);
-    return found.files[0].id;
-  }
+  if (found.files && found.files.length > 0) return found.files[0].id;
   const body = { name, mimeType: 'application/vnd.google-apps.folder' };
   if (parentId) body.parents = [parentId];
   const r = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
@@ -1212,9 +1206,7 @@ async function findOrCreateFolder(name, parentId, token) {
     body: JSON.stringify(body)
   });
   if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
-  const folder = await r.json();
-  localStorage.setItem(cacheKey, folder.id);
-  return folder.id;
+  return (await r.json()).id;
 }
 
 async function uploadToDrive(blob, filename, folderId, token) {
