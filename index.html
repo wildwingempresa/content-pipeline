@@ -1148,12 +1148,18 @@ async function exportarParaDrive(idx, event) {
   const token = localStorage.getItem('google_access_token');
   if (!token) { showNotif('!', 'Liga o Google Drive nas Definições primeiro'); return; }
 
-  showNotif('...', 'A criar documento .docx...');
+  showNotif('...', 'A preparar ficheiro .docx...');
   try {
-    const { Document, Packer } = window.docx;
-    const children = buildDocxChildren(c);
-    const doc = new Document({ sections: [{ properties: { page: { margin: { top: 1200, right: 1300, bottom: 1200, left: 1300 } } }, children }] });
-    const blob = await Packer.toBlob(doc);
+    let blob;
+    if (c.fonte === 'upload' && c.pdfData) {
+      const res = await fetch(c.pdfData);
+      blob = await res.blob();
+    } else {
+      const { Document, Packer } = window.docx;
+      const children = buildDocxChildren(c);
+      const doc = new Document({ sections: [{ properties: { page: { margin: { top: 1200, right: 1300, bottom: 1200, left: 1300 } } }, children }] });
+      blob = await Packer.toBlob(doc);
+    }
 
     showNotif('...', 'A localizar pasta no Drive...');
     const pastaLabels = { guiao: 'Guiões', broll: 'B-Rolls', script: 'Scripts' };
