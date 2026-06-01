@@ -1193,6 +1193,17 @@ async function findOrCreateFolder(name, parentId, token) {
   const cacheKey = `drive_folder_${name}_${parentId||'root'}`;
   const cached = localStorage.getItem(cacheKey);
   if (cached) return cached;
+  const parent = parentId || 'root';
+  const q = encodeURIComponent(`name = '${name.replace(/'/g,"\\'")}' and '${parent}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
+  const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&pageSize=1`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!search.ok) { const e = await search.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${search.status}`); }
+  const found = await search.json();
+  if (found.files && found.files.length > 0) {
+    localStorage.setItem(cacheKey, found.files[0].id);
+    return found.files[0].id;
+  }
   const body = { name, mimeType: 'application/vnd.google-apps.folder' };
   if (parentId) body.parents = [parentId];
   const r = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
