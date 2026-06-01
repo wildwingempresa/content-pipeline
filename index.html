@@ -215,9 +215,7 @@
         <span class="topbar-title" id="topbar-title">Dashboard</span>
         <span class="topbar-sub" id="topbar-sub">/ visão geral</span>
       </div>
-      <div class="topbar-actions">
-        <button class="btn btn-ghost" onclick="goTo('gerar',null)">+ Gerar Conteúdo</button>
-      </div>
+      <div class="topbar-actions"></div>
     </div>
 
     <div class="content">
@@ -292,9 +290,10 @@
           <div style="display:flex;gap:10px;">
             <select class="form-select" id="filtro-tipo" onchange="renderBiblioteca()" style="width:140px;"><option value="">Todos os tipos</option><option value="guiao">Guiões</option><option value="broll">B-Rolls</option><option value="script">Scripts</option></select>
             <select class="form-select" id="filtro-estado" onchange="renderBiblioteca()" style="width:140px;"><option value="">Todos os estados</option><option value="disponivel">Disponível</option><option value="atribuido">Atribuído</option></select>
+            <button class="btn btn-primary" onclick="abrirModalUploadPDF()">+ Adicionar conteúdo</button>
           </div>
         </div>
-        <div class="content-grid" id="biblioteca-grid"><div class="empty-state" style="grid-column:1/-1;padding:80px 0;"><div class="empty-icon">◫</div><div class="empty-text">Biblioteca vazia</div><div class="empty-sub">Gera conteúdo e guarda aqui</div></div></div>
+        <div class="content-grid" id="biblioteca-grid"><div class="empty-state" style="grid-column:1/-1;padding:80px 0;"><div class="empty-icon">◫</div><div class="empty-text">Biblioteca vazia</div><div class="empty-sub">Gera conteúdo ou adiciona um PDF aqui</div></div></div>
       </div>
 
       <!-- PROSPEÇÃO -->
@@ -436,6 +435,39 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="fecharModal('modal-contactar')">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmarOutreach()">Mover para outreach</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UPLOAD PDF -->
+<div class="modal-overlay" id="modal-upload-pdf">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Adicionar conteúdo</span>
+      <button class="modal-close" onclick="fecharModal('modal-upload-pdf')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:20px;">
+        <label class="form-label">Ficheiro PDF</label>
+        <div id="pdf-drop-zone" onclick="document.getElementById('pdf-file-input').click()" style="border:2px dashed var(--border2);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:border-color 0.15s;">
+          <div style="font-size:28px;margin-bottom:8px;">📄</div>
+          <div style="font-size:13px;color:var(--text2);" id="pdf-drop-label">Clica para selecionar um PDF</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px);">O nome do ficheiro será usado como título</div>
+        </div>
+        <input type="file" id="pdf-file-input" accept=".pdf" style="display:none;" onchange="onPDFSelected(this)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo de conteúdo</label>
+        <select class="form-select" id="pdf-tipo">
+          <option value="guiao">Guião UGC</option>
+          <option value="broll">Lista de B-Rolls</option>
+          <option value="script">Script Áudio</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('modal-upload-pdf')">Cancelar</button>
+      <button class="btn btn-primary" id="pdf-confirmar-btn" onclick="confirmarUploadPDF()" disabled style="opacity:0.5;">Adicionar à biblioteca</button>
     </div>
   </div>
 </div>
@@ -1181,6 +1213,60 @@ async function uploadToDrive(blob, filename, folderId, token) {
   });
   if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
   return (await r.json()).id;
+}
+
+// ══════════════════════════════════════════
+// UPLOAD PDF
+// ══════════════════════════════════════════
+let pdfFile = null;
+
+function abrirModalUploadPDF() {
+  pdfFile = null;
+  document.getElementById('pdf-file-input').value = '';
+  document.getElementById('pdf-drop-label').textContent = 'Clica para selecionar um PDF';
+  document.getElementById('pdf-drop-zone').style.borderColor = 'var(--border2)';
+  const btn = document.getElementById('pdf-confirmar-btn');
+  btn.disabled = true; btn.style.opacity = '0.5';
+  document.getElementById('modal-upload-pdf').classList.add('open');
+}
+
+function onPDFSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  pdfFile = file;
+  const titulo = file.name.replace(/\.pdf$/i, '');
+  document.getElementById('pdf-drop-label').textContent = `📄 ${titulo}`;
+  document.getElementById('pdf-drop-zone').style.borderColor = 'var(--accent)';
+  const btn = document.getElementById('pdf-confirmar-btn');
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+function confirmarUploadPDF() {
+  if (!pdfFile) return;
+  const titulo = pdfFile.name.replace(/\.pdf$/i, '');
+  const tipo = document.getElementById('pdf-tipo').value;
+  const tipos = { guiao: 'Guião UGC', broll: 'Lista de B-Rolls', script: 'Script Áudio' };
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    state.conteudos.push({
+      id: Date.now(),
+      tipo,
+      angulo: '',
+      titulo: `${tipos[tipo]} — ${titulo}`,
+      conteudo: '',
+      pdfData: e.target.result,
+      pdfNome: pdfFile.name,
+      estado: 'disponivel',
+      atribuido: null,
+      data: new Date().toLocaleDateString('pt-PT'),
+      fonte: 'upload'
+    });
+    saveState(); updateBadges(); renderBiblioteca();
+    fecharModal('modal-upload-pdf');
+    showNotif('✓', `"${titulo}" adicionado à biblioteca`);
+    pdfFile = null;
+  };
+  reader.readAsDataURL(pdfFile);
 }
 
 // INIT
