@@ -924,87 +924,189 @@ function eliminarConteudo(idx, event) {
 }
 
 function buildDocxChildren(c) {
-  const { Paragraph, TextRun, AlignmentType, BorderStyle, ShadingType } = window.docx;
+  const { Paragraph, TextRun, AlignmentType, BorderStyle } = window.docx;
 
-  const SPECS = [
-    'Este guião é uma orientação. Adapta tudo ao teu estilo e à tua forma natural de falar. Se uma frase não parece tua, muda-a.',
-    'Filma com boa luz natural. Idealmente junto a uma janela durante o dia.',
-    'Filma na vertical (9:16) com a câmara nativa do telemóvel. Nunca dentro da app do TikTok ou Instagram.',
-    'Desliga o ar condicionado, ventoinha ou qualquer ruído de fundo antes de gravar.',
-    'Fundo limpo e neutro. Sem confusão visual atrás de ti.',
-    'Evita roupa com logos ou marcas visíveis.',
-    'Fala alto, claro e com energia.',
-    'Não leias. Interioriza a ideia e grava como se estivesses a falar para os teus seguidores.',
-    'Os primeiros 3 segundos são tudo. Grava o hook 3 ou 4 vezes e fica com a melhor.',
-    'Mostra o produto como se o usasses genuinamente.',
-  ];
+  // Paleta exata do ficheiro de referência
+  const F        = 'Arial';
+  const PURPLE   = '44355C';
+  const LPURPLE  = 'C2B9EA';
+  const DARK     = '1A1A1A';
+  const MID      = '444444';
+  const LGRAY    = 'AAAAAA';
+  const VGRAY    = '999999';
+  const FGRAY    = 'BBBBBB';
 
+  const titulo = c.titulo.split('—').pop().trim();
   const out = [];
 
-  // Cabeçalho
-  out.push(new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { before: 0, after: 160 },
-    children: [new TextRun({ text: 'Pés de Algodão', bold: true, size: 52 })],
-  }));
-  out.push(new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { before: 0, after: 400 },
-    children: [new TextRun({ text: c.titulo.split('—').pop().trim(), size: 28 })],
-  }));
+  // ── helpers ─────────────────────────────────────────────────────────
+  const thinSep = () => new Paragraph({
+    border: { bottom: { style: BorderStyle.SINGLE, color: 'EEEEEE', size: 2, space: 1 } },
+    spacing: { before: 200, after: 200 },
+    children: [],
+  });
+  const sectionHead = (letter, text) => new Paragraph({
+    border: { bottom: { style: BorderStyle.SINGLE, color: LPURPLE, size: 4, space: 6 } },
+    spacing: { before: 320, after: 160 },
+    children: [new TextRun({ text: `${letter}  ${text}`, font: F, bold: true, color: PURPLE, size: 26 })],
+  });
+  const spacer = () => new Paragraph({ spacing: { before: 0, after: 0 }, children: [new TextRun({ text: ' ', size: 20 })] });
 
-  // Caixa de especificações
-  SPECS.forEach((spec, i) => {
+  // ── CABEÇALHO ───────────────────────────────────────────────────────
+  out.push(new Paragraph({
+    spacing: { before: 0, after: 60 },
+    children: [new TextRun({ text: 'PÉS DE ALGODÃO', font: F, bold: true, color: PURPLE, size: 22 })],
+  }));
+  out.push(new Paragraph({
+    spacing: { before: 0, after: 60 },
+    children: [new TextRun({ text: 'Guião UGC', font: F, color: LGRAY, size: 19 })],
+  }));
+  out.push(new Paragraph({
+    spacing: { before: 0, after: 200 },
+    children: [new TextRun({ text: titulo, font: F, bold: true, color: DARK, size: 36 })],
+  }));
+  out.push(new Paragraph({
+    spacing: { before: 0, after: 0 },
+    children: [new TextRun({ text: `Ângulo: ${c.angulo}`, font: F, color: MID, size: 19 })],
+  }));
+  out.push(thinSep());
+
+  // ── PARSE DO CONTEÚDO GERADO ─────────────────────────────────────────
+  const stripEmoji = s => s.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{200D}]/gu, '').trim();
+  const lines = c.conteudo.split('\n').map(l => stripEmoji(l)).filter(Boolean);
+
+  const isHeaderLine = l =>
+    /^pés de algodão$/i.test(l) || /^guião ugc$/i.test(l) ||
+    l.toLowerCase() === titulo.toLowerCase() ||
+    (/máx\.|vertical 9:16|ângulo:/i.test(l) && l.length < 100);
+  const isSectionA  = l => /o que precisas de saber/i.test(l);
+  const isSectionB  = l => /guião cena a cena/i.test(l);
+  const isSectionE  = l => /dicas de gravação/i.test(l) || /especificações de gravação/i.test(l);
+  const isScene     = l => l.includes('—') && /\d/.test(l) && l.length < 100 && !/^o que/i.test(l) && !/^visual/i.test(l);
+  const isDizer     = l => /^o que dizer/i.test(l);
+  const isVisual    = l => /^visual/i.test(l);
+
+  let section = 'none';
+  let addedA = false, addedB = false;
+
+  for (const line of lines) {
+    if (isHeaderLine(line)) continue;
+
+    if (isSectionA(line)) {
+      if (!addedA) {
+        out.push(sectionHead('A', 'O que precisas de saber antes de gravar'));
+        out.push(spacer());
+        addedA = true;
+      }
+      section = 'pre'; continue;
+    }
+    if (isSectionB(line)) {
+      if (!addedB) {
+        if (addedA) out.push(thinSep());
+        out.push(sectionHead('B', 'Guião cena a cena'));
+        out.push(spacer());
+        out.push(new Paragraph({
+          spacing: { before: 0, after: 120 },
+          children: [
+            new TextRun({ text: 'Fala e visual são sugestões.', font: F, bold: true, color: PURPLE, size: 20 }),
+            new TextRun({ text: '  Adapta as palavras ao teu estilo. Para cada momento, o que aparece no ecrã deve acompanhar e reforçar o que estás a dizer.', font: F, color: MID, size: 20 }),
+          ],
+        }));
+        out.push(spacer());
+        addedB = true;
+      }
+      section = 'guiao'; continue;
+    }
+    if (isSectionE(line)) { section = 'dicas'; continue; }
+
+    // Fallback: se ainda não entrámos em nenhuma secção mas há cenas, abrir secção B
+    if (section === 'none' && isScene(line) && !addedB) {
+      if (addedA) out.push(thinSep());
+      out.push(sectionHead('B', 'Guião cena a cena'));
+      out.push(spacer());
+      out.push(new Paragraph({
+        spacing: { before: 0, after: 120 },
+        children: [
+          new TextRun({ text: 'Fala e visual são sugestões.', font: F, bold: true, color: PURPLE, size: 20 }),
+          new TextRun({ text: '  Adapta as palavras ao teu estilo.', font: F, color: MID, size: 20 }),
+        ],
+      }));
+      out.push(spacer());
+      addedB = true; section = 'guiao';
+    }
+
+    if (section === 'pre') {
+      out.push(new Paragraph({
+        spacing: { before: 0, after: 120 },
+        children: [new TextRun({ text: line, font: F, color: MID, size: 20 })],
+      }));
+    } else if (section === 'guiao' || section === 'none') {
+      if (isScene(line)) {
+        out.push(new Paragraph({
+          spacing: { before: 200, after: 60 },
+          children: [new TextRun({ text: line, font: F, bold: true, color: PURPLE, size: 20 })],
+        }));
+      } else if (isDizer(line)) {
+        const speech = line.replace(/^o que dizer:\s*/i, '').trim();
+        out.push(new Paragraph({
+          spacing: { before: 0, after: 80 },
+          indent: { left: 360 },
+          children: [new TextRun({ text: speech ? `"${speech}"` : '', font: F, color: DARK, size: 21 })],
+        }));
+      } else if (isVisual(line)) {
+        const vis = line.replace(/^visual:\s*/i, '').trim();
+        out.push(new Paragraph({
+          spacing: { before: 0, after: 160 },
+          indent: { left: 360 },
+          children: [
+            new TextRun({ text: '📷  ', font: F, color: LPURPLE, size: 18 }),
+            new TextRun({ text: vis, font: F, italics: true, color: VGRAY, size: 18 }),
+          ],
+        }));
+      } else {
+        out.push(new Paragraph({
+          spacing: { before: 0, after: 80 },
+          children: [new TextRun({ text: line, font: F, color: MID, size: 20 })],
+        }));
+      }
+    }
+    // Ignorar linhas na secção 'dicas' — usamos as hardcoded abaixo
+  }
+
+  // ── DICAS DE GRAVAÇÃO (hardcoded, idênticas ao ficheiro de referência) ──
+  const DICAS = [
+    ['💡', 'Este guião é uma orientação. Adapta tudo ao teu estilo e à tua forma natural de falar. Se uma frase não parece tua, muda-a.'],
+    ['☀️', 'Filma com boa luz natural. Idealmente junto a uma janela durante o dia.'],
+    ['⏱', 'Tenta não passar os 60 segundos.'],
+    ['📱', 'Filma na vertical (9:16) com a câmara nativa do telemóvel. Nunca dentro da app do TikTok ou Instagram.'],
+    ['🔇', 'Desliga o ar condicionado, ventoinha ou qualquer ruído de fundo antes de gravar.'],
+    ['🏠', 'Para os clips em que apareces a falar usa um fundo limpo e neutro. Para os clips do filho o ambiente natural de casa ou do parque funciona muito bem.'],
+    ['👕', 'Evita roupa com logos ou marcas visíveis.'],
+    ['🎤', 'Fala alto, claro e com energia. Faz com que seja agradável e envolvente de ver.'],
+    ['🗣️', 'Não pareças a ler. Interioriza a ideia e grava como se estivesses a falar com uma amiga.'],
+    ['🪝', 'Os primeiros 3 segundos são tudo. Grava o hook 3 ou 4 vezes e fica com a melhor.'],
+    ['❤️', 'Mostra o produto como se o usasses genuinamente. É esse o vídeo que converte.'],
+  ];
+  out.push(thinSep());
+  out.push(sectionHead('E', 'Dicas de gravação'));
+  out.push(spacer());
+  DICAS.forEach(([emoji, text]) => {
     out.push(new Paragraph({
-      shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'EFEFEF' },
-      indent: { left: 200, right: 200 },
-      spacing: { before: i === 0 ? 160 : 40, after: i === SPECS.length - 1 ? 280 : 40 },
-      children: [new TextRun({ text: '  •  ' + spec, size: 18, color: '444444' })],
+      spacing: { before: 100, after: 60 },
+      children: [
+        new TextRun({ text: `${emoji}  `, font: F, size: 20 }),
+        new TextRun({ text, font: F, color: MID, size: 20 }),
+      ],
     }));
   });
 
-  // Conteúdo — parsear cenas
-  const stripEmoji = s => s.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{200D}]/gu, '').trim();
-  let firstScene = true;
-
-  for (const raw of c.conteudo.split('\n')) {
-    const line = stripEmoji(raw);
-    if (!line) continue;
-
-    const isSceneHeader = line.includes('—') && /\d/.test(line) && line.length < 100;
-    const isDizer = /^o que dizer/i.test(line);
-    const isVisual = /^visual/i.test(line);
-
-    if (isSceneHeader) {
-      if (!firstScene) {
-        out.push(new Paragraph({
-          border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC', space: 4 } },
-          spacing: { before: 280, after: 280 },
-          children: [],
-        }));
-      }
-      firstScene = false;
-      out.push(new Paragraph({
-        spacing: { before: 200, after: 80 },
-        children: [new TextRun({ text: line, bold: true, size: 28 })],
-      }));
-    } else if (isDizer) {
-      out.push(new Paragraph({
-        spacing: { before: 80, after: 80 },
-        children: [new TextRun({ text: line, italics: true, size: 22 })],
-      }));
-    } else if (isVisual) {
-      out.push(new Paragraph({
-        spacing: { before: 80, after: 80 },
-        children: [new TextRun({ text: line, size: 22 })],
-      }));
-    } else {
-      out.push(new Paragraph({
-        spacing: { before: 60, after: 60 },
-        children: [new TextRun({ text: line, size: 22 })],
-      }));
-    }
-  }
+  // ── RODAPÉ ──────────────────────────────────────────────────────────
+  out.push(spacer());
+  out.push(spacer());
+  out.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    children: [new TextRun({ text: `Pés de Algodão  ·  Guião UGC  ·  ${titulo}`, font: F, italics: true, color: FGRAY, size: 16 })],
+  }));
 
   return out;
 }
@@ -1019,7 +1121,7 @@ async function exportarParaDrive(idx, event) {
   try {
     const { Document, Packer } = window.docx;
     const children = buildDocxChildren(c);
-    const doc = new Document({ sections: [{ properties: {}, children }] });
+    const doc = new Document({ sections: [{ properties: { page: { margin: { top: 1200, right: 1300, bottom: 1200, left: 1300 } } }, children }] });
     const blob = await Packer.toBlob(doc);
 
     showNotif('...', 'A localizar pasta no Drive...');
