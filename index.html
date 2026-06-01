@@ -1162,7 +1162,7 @@ async function exportarParaDrive(idx, event) {
     }
 
     showNotif('...', 'A localizar pasta no Drive...');
-    const pastaLabels = { guiao: 'Guiões', broll: 'B-Rolls', script: 'Scripts' };
+    const pastaLabels = { guiao: 'Guiões', broll: 'Lista de B-Rolls', script: 'Script Áudio' };
     const rootId = await findOrCreateFolder('Content Pipeline', null, token);
     const subId = await findOrCreateFolder(pastaLabels[c.tipo], rootId, token);
 
