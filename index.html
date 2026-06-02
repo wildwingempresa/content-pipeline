@@ -396,6 +396,7 @@
     <div class="modal-header"><span class="modal-title" id="detalhe-nome">Criadora</span><button class="modal-close" onclick="fecharModal('modal-detalhe')">×</button></div>
     <div class="modal-body" id="detalhe-body"></div>
     <div class="modal-footer">
+      <button class="btn btn-danger" onclick="devolverParaAprovadas()">← Devolver a Aprovadas</button>
       <button class="btn btn-ghost" onclick="fecharModal('modal-detalhe')">Fechar</button>
       <button class="btn btn-primary" id="detalhe-avancar" onclick="avancarEstado()">Avançar →</button>
     </div>
@@ -887,6 +888,18 @@ function verCriadora(idx) {
     <div style="margin-top:20px;"><div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;">Histórico</div>
     ${c.historico.map(h=>`<div style="font-size:12px;color:var(--text2);padding:5px 0;border-bottom:1px solid var(--border);">${h}</div>`).join('')}</div>`;
   document.getElementById('modal-detalhe').classList.add('open');
+}
+
+function devolverParaAprovadas() {
+  const idx = state.currentCriadoraIdx;
+  const c = state.criadoras.splice(idx, 1)[0];
+  if (c.conteudoId) {
+    const cont = state.conteudos.find(x => x.id == c.conteudoId);
+    if (cont) { cont.estado = 'disponivel'; cont.atribuido = null; }
+  }
+  state.pendentes.push({ id: c.id, nome: c.nome, username: c.username, plataforma: c.plataforma, seguidores: c.seguidores, notas: c.notas, data: c.data || new Date().toLocaleDateString('pt-PT'), outreachEstado: 'Por contactar' });
+  saveState(); fecharModal('modal-detalhe'); updateBadges(); renderPipeline(); renderAprovadas();
+  showNotif('✓', c.nome + ' devolvida para Aprovadas');
 }
 
 function avancarEstado() {
