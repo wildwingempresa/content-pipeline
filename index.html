@@ -166,19 +166,13 @@
   .settings-sub { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
   .key-display { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); background: var(--surface2); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-top: 8px; word-break: break-all; }
 
-  /* PROSPEÇÃO */
-  .prospeccao-filters { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
   .criadora-prospect-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
   .criadora-prospect-info { flex: 1; }
   .criadora-prospect-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
   .criadora-prospect-meta { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
-  .criadora-prospect-actions { display: flex; gap: 8px; }
+  .criadora-prospect-actions { display: flex; gap: 8px; align-items: center; }
   .btn-approve { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); font-size: 12px; padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer; font-family: 'Sora', sans-serif; transition: all 0.15s; }
   .btn-approve:hover { background: var(--green); color: var(--bg); }
-  .btn-reject { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); font-size: 12px; padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer; font-family: 'Sora', sans-serif; transition: all 0.15s; }
-  .btn-reject:hover { background: var(--red); color: var(--bg); }
-
-  /* PENDENTES */
   .pendente-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
 </style>
 </head>
@@ -196,8 +190,7 @@
       <div class="nav-section">Conteúdo</div>
       <button class="nav-item" onclick="goTo('biblioteca',this)"><span class="nav-icon">◫</span> Biblioteca <span class="nav-badge" id="badge-biblioteca">0</span></button>
       <div class="nav-section">Criadoras</div>
-      <button class="nav-item" onclick="goTo('prospeccao',this)"><span class="nav-icon">◎</span> Prospeção</button>
-      <button class="nav-item" onclick="goTo('pendentes',this)"><span class="nav-icon">◷</span> Pendentes <span class="nav-badge" id="badge-pendentes">0</span></button>
+      <button class="nav-item" onclick="goTo('aprovadas',this)"><span class="nav-icon">◷</span> Aprovadas <span class="nav-badge" id="badge-pendentes">0</span></button>
       <button class="nav-item" onclick="goTo('pipeline',this)"><span class="nav-icon">⟶</span> Pipeline <span class="nav-badge" id="badge-pipeline">0</span></button>
       <div class="nav-section">Sistema</div>
       <button class="nav-item" onclick="goTo('settings',this)"><span class="nav-icon">⚙</span> Definições</button>
@@ -295,37 +288,16 @@
         <div class="content-grid" id="biblioteca-grid"><div class="empty-state" style="grid-column:1/-1;padding:80px 0;"><div class="empty-icon">◫</div><div class="empty-text">Biblioteca vazia</div><div class="empty-sub">Adiciona um ficheiro DOCX aqui</div></div></div>
       </div>
 
-      <!-- PROSPEÇÃO -->
-      <div class="page" id="page-prospeccao">
-        <div class="prospeccao-filters">
-          <div class="generate-title">Prospeção de Criadoras</div>
-          <div class="generate-sub">Define os filtros e adiciona criadoras encontradas. As aprovadas ficam pendentes de contacto.</div>
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Plataforma</label><select class="form-select" id="p-plataforma"><option>Instagram</option><option>TikTok</option><option>Ambos</option></select></div>
-            <div class="form-group"><label class="form-label">Nicho</label><select class="form-select" id="p-nicho"><option>Maternidade / Bebés</option><option>Lifestyle familiar</option><option>Criança e desenvolvimento</option><option>Mãe jovem</option></select></div>
-            <div class="form-group"><label class="form-label">Seguidores mínimos</label><select class="form-select" id="p-seguidores"><option>1.000+</option><option>5.000+</option><option selected>10.000+</option><option>50.000+</option></select></div>
-          </div>
-          <div class="form-row" style="grid-template-columns:1fr 1fr;">
-            <div class="form-group"><label class="form-label">País</label><select class="form-select" id="p-pais"><option selected>Portugal</option><option>Brasil</option><option>Portugal + Brasil</option></select></div>
-            <div class="form-group"><label class="form-label">Língua</label><select class="form-select" id="p-lingua"><option selected>Português</option><option>Qualquer</option></select></div>
-          </div>
-          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" onclick="adicionarCriadoraManual()">+ Adicionar criadora encontrada</button>
-        </div>
-
-        <div class="section-header" style="margin-top:8px;">
-          <div class="section-title">Criadoras encontradas — a validar</div>
-          <span class="tag tag-amber" id="count-avalidar">0 para validar</span>
-        </div>
-        <div id="lista-prospeccao"><div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">Nenhuma criadora para validar</div><div class="empty-sub">Adiciona criadoras encontradas no Instagram ou TikTok</div></div></div>
-      </div>
-
-      <!-- PENDENTES -->
-      <div class="page" id="page-pendentes">
+      <!-- APROVADAS -->
+      <div class="page" id="page-aprovadas">
         <div class="section-header">
-          <div class="section-title">Pendentes de contacto</div>
-          <span class="tag tag-green" id="count-pendentes-header">0 criadoras</span>
+          <div class="section-title">Aprovadas</div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span class="tag tag-green" id="count-pendentes-header">0 criadoras</span>
+            <button class="btn btn-ghost" onclick="importarDaSheet()">↓ Importar da Sheet</button>
+          </div>
         </div>
-        <div id="lista-pendentes"><div class="empty-state"><div class="empty-icon">◷</div><div class="empty-text">Nenhuma criadora pendente</div><div class="empty-sub">As criadoras aprovadas na prospeção aparecem aqui</div></div></div>
+        <div id="lista-pendentes"><div class="empty-state"><div class="empty-icon">◷</div><div class="empty-text">Nenhuma criadora aprovada</div><div class="empty-sub">Importa da Sheet ou adiciona manualmente pelo Pipeline</div></div></div>
       </div>
 
       <!-- PIPELINE -->
@@ -381,6 +353,14 @@
             <input class="form-input" id="input-sheet-id" type="text" placeholder="Cole aqui o ID da Sheet">
           </div>
           <button class="btn btn-primary" style="margin-top:12px;" onclick="guardarSheetId()">Guardar Sheet ID</button>
+        </div>
+        <div class="settings-section">
+          <div class="settings-title">Template de Outreach</div>
+          <div class="settings-sub">Mensagem padrão ao contactar uma criadora. Usa {nome} para inserir o primeiro nome automaticamente.</div>
+          <div class="form-group">
+            <textarea class="form-textarea" id="outreach-template" style="min-height:160px;" placeholder="Olá {nome}! 👋&#10;&#10;Vi o teu perfil e adorei o teu conteúdo..."></textarea>
+          </div>
+          <button class="btn btn-primary" style="margin-top:12px;" onclick="guardarTemplateOutreach()">Guardar template</button>
         </div>
       </div>
 
@@ -510,8 +490,7 @@ const pageConfig = {
   dashboard: ['Dashboard','/ visão geral'],
   gerar: ['Gerar Conteúdo','/ novo conteúdo'],
   biblioteca: ['Biblioteca','/ conteúdo gerado'],
-  prospeccao: ['Prospeção','/ encontrar criadoras'],
-  pendentes: ['Pendentes','/ aguardam contacto'],
+  aprovadas: ['Aprovadas','/ por contactar'],
   pipeline: ['Pipeline','/ criadoras ativas'],
   settings: ['Definições','/ configurações']
 };
@@ -526,8 +505,7 @@ function goTo(page, btn) {
   document.getElementById('topbar-sub').textContent = cfg[1];
   if (page === 'pipeline') renderPipeline();
   if (page === 'biblioteca') renderBiblioteca();
-  if (page === 'prospeccao') renderProspeccao();
-  if (page === 'pendentes') renderPendentes();
+  if (page === 'aprovadas') renderAprovadas();
   if (page === 'dashboard') renderDashboard();
   if (page === 'settings') renderSettings();
 }
@@ -581,13 +559,19 @@ function guardarSheetId() {
   showNotif('✓','Sheet ID guardado');
 }
 
+function guardarTemplateOutreach() {
+  const t = document.getElementById('outreach-template').value;
+  localStorage.setItem('outreach_template', t);
+  showNotif('✓','Template guardado');
+}
+
 function ligarGoogleSheets() {
   const clientId = localStorage.getItem('google_client_id');
   if (!clientId) { showNotif('!','Guarda o Client ID primeiro'); return; }
   const scope = 'https://www.googleapis.com/auth/drive';
   localStorage.removeItem('google_access_token');
   const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${encodeURIComponent(scope)}`;
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=consent`;
   window.location.href = url;
 }
 
@@ -610,6 +594,8 @@ function renderSettings() {
 
   if (clientId) document.getElementById('input-google-client-id').value = clientId;
   if (sheetId) document.getElementById('input-sheet-id').value = sheetId;
+  const template = localStorage.getItem('outreach_template');
+  if (template) document.getElementById('outreach-template').value = template;
 
   const driveToken = localStorage.getItem('google_access_token');
   const driveStatus = document.getElementById('google-status');
@@ -730,74 +716,85 @@ function verConteudo(idx) {
 }
 
 // ══════════════════════════════════════════
-// PROSPEÇÃO
+// APROVADAS
 // ══════════════════════════════════════════
-function adicionarCriadoraManual() {
-  document.getElementById('modal-criadora-titulo').textContent = 'Adicionar criadora encontrada';
-  document.getElementById('c-nome').value='';
-  document.getElementById('c-username').value='';
-  document.getElementById('c-seguidores').value='';
-  document.getElementById('c-notas').value='';
-  document.getElementById('modal-criadora').classList.add('open');
-}
+const OUTREACH_ESTADOS = ['Por contactar','1ª mensagem enviada','1º follow-up','Último follow-up'];
 
 function confirmarCriadora() {
   const nome = document.getElementById('c-nome').value.trim();
   if (!nome) { showNotif('!','Nome obrigatório'); return; }
-  state.prospeccao.push({ id: Date.now(), nome, username: document.getElementById('c-username').value.trim(), plataforma: document.getElementById('c-plataforma')?.value||'Instagram', seguidores: document.getElementById('c-seguidores').value.trim(), notas: document.getElementById('c-notas').value.trim() });
+  state.criadoras.push({ id: Date.now(), nome, username: document.getElementById('c-username').value.trim(), plataforma: document.getElementById('c-plataforma')?.value||'Instagram', seguidores: document.getElementById('c-seguidores').value.trim(), notas: document.getElementById('c-notas').value.trim(), estado: 'outreach', ultimoContacto: new Date().toLocaleDateString('pt-PT'), historico: [`${new Date().toLocaleDateString('pt-PT')} — Adicionado manualmente`] });
   saveState(); fecharModal('modal-criadora'); updateBadges();
-  renderProspeccao();
-  showNotif('✓', nome+' adicionada para validar');
+  renderPipeline();
+  showNotif('✓', nome+' adicionada ao pipeline');
 }
 
-function renderProspeccao() {
-  const lista = document.getElementById('lista-prospeccao');
-  document.getElementById('count-avalidar').textContent = state.prospeccao.length+' para validar';
-  if (!state.prospeccao.length) { lista.innerHTML=`<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">Nenhuma criadora para validar</div><div class="empty-sub">Adiciona criadoras encontradas no Instagram ou TikTok</div></div>`; return; }
-  lista.innerHTML = state.prospeccao.map((c,i) => `<div class="criadora-prospect-card">
-    <div class="avatar">${c.nome.slice(0,2).toUpperCase()}</div>
-    <div class="criadora-prospect-info">
-      <div class="criadora-prospect-name">${c.nome} ${c.username?`<span style="color:var(--text3);font-size:11px;">@${c.username}</span>`:''}</div>
-      <div class="criadora-prospect-meta">${c.plataforma} ${c.seguidores?'· '+c.seguidores+' seguidores':''} ${c.notas?'· '+c.notas:''}</div>
-    </div>
-    <div class="criadora-prospect-actions">
-      <button class="btn-approve" onclick="aprovarCriadora(${i})">✓ Aprovar</button>
-      <button class="btn-reject" onclick="rejeitarCriadora(${i})">✗ Rejeitar</button>
-    </div>
-  </div>`).join('');
-}
-
-function aprovarCriadora(idx) {
-  const c = state.prospeccao.splice(idx,1)[0];
-  state.pendentes.push({ ...c, data: new Date().toLocaleDateString('pt-PT') });
-  saveState(); updateBadges(); renderProspeccao();
-  addActivity('Criadora aprovada', c.nome, c.plataforma);
-  showNotif('✓', c.nome+' movida para pendentes');
-}
-
-function rejeitarCriadora(idx) {
-  const c = state.prospeccao.splice(idx,1)[0];
-  saveState(); renderProspeccao();
-  showNotif('✗', c.nome+' rejeitada');
-}
-
-// ══════════════════════════════════════════
-// PENDENTES
-// ══════════════════════════════════════════
-function renderPendentes() {
+function renderAprovadas() {
   const lista = document.getElementById('lista-pendentes');
   document.getElementById('count-pendentes-header').textContent = state.pendentes.length+' criadoras';
-  if (!state.pendentes.length) { lista.innerHTML=`<div class="empty-state"><div class="empty-icon">◷</div><div class="empty-text">Nenhuma criadora pendente</div><div class="empty-sub">As criadoras aprovadas aparecem aqui</div></div>`; return; }
-  lista.innerHTML = state.pendentes.map((c,i) => `<div class="pendente-card">
+  if (!state.pendentes.length) { lista.innerHTML=`<div class="empty-state"><div class="empty-icon">◷</div><div class="empty-text">Nenhuma criadora aprovada</div><div class="empty-sub">Importa da Sheet ou adiciona manualmente pelo Pipeline</div></div>`; return; }
+  lista.innerHTML = state.pendentes.map((c,i) => {
+    const est = c.outreachEstado || 'Por contactar';
+    const estadoColor = {'Por contactar':'tag-gray','1ª mensagem enviada':'tag-blue','1º follow-up':'tag-amber','Último follow-up':'tag-red'}[est]||'tag-gray';
+    const opts = OUTREACH_ESTADOS.map(e=>`<option value="${e}"${e===est?' selected':''}>${e}</option>`).join('');
+    return `<div class="pendente-card">
     <div class="avatar">${c.nome.slice(0,2).toUpperCase()}</div>
     <div class="criadora-prospect-info">
       <div class="criadora-prospect-name">${c.nome} ${c.username?`<span style="color:var(--text3);font-size:11px;">@${c.username}</span>`:''}</div>
-      <div class="criadora-prospect-meta">${c.plataforma} ${c.seguidores?'· '+c.seguidores+' seg':''} · aprovada em ${c.data}</div>
+      <div class="criadora-prospect-meta">${c.plataforma} ${c.seguidores?'· '+c.seguidores+' seg':''} · adicionada em ${c.data||''}</div>
     </div>
     <div class="criadora-prospect-actions">
+      <select class="form-select" style="width:180px;font-size:12px;padding:6px 10px;" onchange="setOutreachEstado(${i},this.value)">${opts}</select>
       <button class="btn-approve" onclick="abrirContactar(${i})">→ Fazer outreach</button>
     </div>
-  </div>`).join('');
+  </div>`;
+  }).join('');
+}
+
+function setOutreachEstado(idx, estado) {
+  state.pendentes[idx].outreachEstado = estado;
+  saveState();
+}
+
+async function importarDaSheet() {
+  const sheetId = localStorage.getItem('sheet_id');
+  const token = localStorage.getItem('google_access_token');
+  if (!sheetId) { showNotif('!','Configura o Sheet ID nas Definições'); return; }
+  if (!token) { showNotif('!','Liga o Google Drive nas Definições primeiro'); return; }
+  showNotif('...','A importar da Sheet...');
+  try {
+    const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:Z`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const rows = data.values || [];
+    if (rows.length < 2) { showNotif('!','Sheet vazia ou sem dados'); return; }
+    const headers = rows[0].map(h => h.toLowerCase().trim());
+    const iNome = headers.findIndex(h => h.includes('nome'));
+    const iUsername = headers.findIndex(h => h.includes('username') || h.includes('user'));
+    const iPlataforma = headers.findIndex(h => h.includes('plataforma') || h.includes('platform'));
+    const iSeguidores = headers.findIndex(h => h.includes('seguidor'));
+    const iNotas = headers.findIndex(h => h.includes('nota'));
+    const iEstado = headers.findIndex(h => h.includes('estado') || h.includes('status'));
+    let importadas = 0;
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const estado = iEstado >= 0 ? (row[iEstado]||'').trim().toLowerCase() : '';
+      if (estado !== 'aprovado') continue;
+      const nome = iNome >= 0 ? (row[iNome]||'').trim() : '';
+      if (!nome) continue;
+      const username = iUsername >= 0 ? (row[iUsername]||'').trim() : '';
+      if (state.pendentes.some(p => p.nome === nome || (username && p.username === username))) continue;
+      state.pendentes.push({ id: Date.now()+i, nome, username, plataforma: iPlataforma>=0?(row[iPlataforma]||'Instagram').trim():'Instagram', seguidores: iSeguidores>=0?(row[iSeguidores]||'').trim():'', notas: iNotas>=0?(row[iNotas]||'').trim():'', data: new Date().toLocaleDateString('pt-PT'), outreachEstado: 'Por contactar' });
+      importadas++;
+    }
+    saveState(); updateBadges(); renderAprovadas();
+    showNotif('✓', importadas ? `${importadas} criadoras importadas` : 'Nenhuma criadora nova com estado Aprovado');
+  } catch(e) {
+    if (String(e).includes('401')) { localStorage.removeItem('google_access_token'); showNotif('!','Sessão Google expirada — volta a ligar nas Definições'); }
+    else { showNotif('✗','Erro ao importar: '+e.message); }
+  }
 }
 
 function abrirContactar(idx) {
@@ -807,7 +804,9 @@ function abrirContactar(idx) {
   const sel = document.getElementById('contactar-conteudo');
   const disp = state.conteudos.filter(x=>x.estado==='disponivel');
   sel.innerHTML = '<option value="">— Nenhum por agora —</option>'+disp.map(x=>`<option value="${x.id}">${x.titulo.split('—').slice(-1)[0]?.trim()}</option>`).join('');
-  document.getElementById('contactar-mensagem').value = `Olá ${c.nome.split(' ')[0]}! 👋\n\nVi o teu perfil e adorei o teu conteúdo de maternidade. Somos a Pés de Algodão, uma marca portuguesa de sapatos-meia para bebés que estão a aprender a andar.\n\nGostavas de fazer uma colaboração connosco? Enviamos os nossos Sapatos Exploradores™ para testares com o teu bebé e criares conteúdo autêntico.\n\nSe tiveres interesse fala comigo que combinamos os detalhes! 🧡`;
+  const savedTemplate = localStorage.getItem('outreach_template');
+  const defaultTemplate = `Olá {nome}! 👋\n\nVi o teu perfil e adorei o teu conteúdo de maternidade. Somos a Pés de Algodão, uma marca portuguesa de sapatos-meia para bebés que estão a aprender a andar.\n\nGostavas de fazer uma colaboração connosco? Enviamos os nossos Sapatos Exploradores™ para testares com o teu bebé e criares conteúdo autêntico.\n\nSe tiveres interesse fala comigo que combinamos os detalhes! 🧡`;
+  document.getElementById('contactar-mensagem').value = (savedTemplate || defaultTemplate).replace('{nome}', c.nome.split(' ')[0]);
   document.getElementById('modal-contactar').classList.add('open');
 }
 
