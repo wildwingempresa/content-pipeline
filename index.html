@@ -770,19 +770,40 @@ async function importarDaSheet() {
     const data = await r.json();
     const rows = data.values || [];
     if (rows.length < 2) { showNotif('!','Sheet vazia ou sem dados'); return; }
-    const headers = rows[0].map(h => h.toLowerCase().trim());
+    const headers = rows[0].map(h => (h||'').toLowerCase().trim());
+    console.log('[importar] cabeçalhos encontrados:', rows[0]);
+
     const iNome = headers.findIndex(h => h.includes('nome'));
-    const iUsername = headers.findIndex(h => h.includes('username') || h.includes('user'));
-    const iPlataforma = headers.findIndex(h => h.includes('plataforma') || h.includes('platform'));
-    const iSeguidores = headers.findIndex(h => h.includes('seguidor'));
-    const iNotas = headers.findIndex(h => h.includes('nota'));
-    const iEstado = headers.findIndex(h => h.includes('estado') || h.includes('status'));
+    const iUsername = headers.findIndex(h => h.includes('username') || h.includes('user') || h.includes('instagram') || h.includes('tiktok'));
+    const iPlataforma = headers.findIndex(h => h.includes('plataforma') || h.includes('platform') || h.includes('rede'));
+    const iSeguidores = headers.findIndex(h => h.includes('seguidor') || h.includes('follower'));
+    const iNotas = headers.findIndex(h => h.includes('nota') || h.includes('observa') || h.includes('comment'));
+    let iEstado = headers.findIndex(h => h.includes('estado') || h.includes('status') || h.includes('situa') || h.includes('result'));
+
+    // Se ainda não encontrou a coluna de estado, procura qual coluna tem valores como "aprovado/aprovada"
+    if (iEstado < 0) {
+      for (let col = 0; col < headers.length; col++) {
+        for (let row = 1; row < Math.min(rows.length, 10); row++) {
+          const val = (rows[row][col]||'').toLowerCase();
+          if (val.startsWith('aprovad') || val.startsWith('rejeit') || val.startsWith('pendent')) { iEstado = col; break; }
+        }
+        if (iEstado >= 0) break;
+      }
+    }
+
+    console.log('[importar] coluna estado:', iEstado >= 0 ? rows[0][iEstado] : 'NÃO ENCONTRADA', '| coluna nome:', iNome >= 0 ? rows[0][iNome] : 'NÃO ENCONTRADA');
+
+    if (iEstado < 0) {
+      showNotif('!', `Coluna de estado não encontrada. Cabeçalhos: ${rows[0].join(', ')}`);
+      return;
+    }
+
     let importadas = 0;
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      const estado = iEstado >= 0 ? (row[iEstado]||'').trim().toLowerCase() : '';
-      if (estado !== 'aprovado') continue;
-      const nome = iNome >= 0 ? (row[iNome]||'').trim() : '';
+      const estado = (row[iEstado]||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      if (!estado.startsWith('aprovad')) continue;
+      const nome = iNome >= 0 ? (row[iNome]||'').trim() : (row[0]||'').trim();
       if (!nome) continue;
       const username = iUsername >= 0 ? (row[iUsername]||'').trim() : '';
       if (state.pendentes.some(p => p.nome === nome || (username && p.username === username))) continue;
@@ -790,7 +811,8 @@ async function importarDaSheet() {
       importadas++;
     }
     saveState(); updateBadges(); renderAprovadas();
-    showNotif('✓', importadas ? `${importadas} criadoras importadas` : 'Nenhuma criadora nova com estado Aprovado');
+    if (importadas) { showNotif('✓', `${importadas} criadoras importadas`); }
+    else { showNotif('!', 'Nenhuma nova com estado "Aprovado/a". Abre a consola (F12) para ver os cabeçalhos detectados.'); }
   } catch(e) {
     if (String(e).includes('401')) { localStorage.removeItem('google_access_token'); showNotif('!','Sessão Google expirada — volta a ligar nas Definições'); }
     else { showNotif('✗','Erro ao importar: '+e.message); }
@@ -817,7 +839,7 @@ function confirmarOutreach() {
   let conteudoTitulo = '';
   if (conteudoId) { const cont = state.conteudos.find(x=>x.id==conteudoId); if(cont){cont.estado='atribuido';cont.atribuido=c.nome;conteudoTitulo=cont.titulo;} }
   state.criadoras.push({ ...c, estado:'outreach', conteudoId: conteudoId||null, conteudoTitulo, ultimoContacto: new Date().toLocaleDateString('pt-PT'), historico: [`${new Date().toLocaleDateString('pt-PT')} — Outreach enviado`] });
-  saveState(); fecharModal('modal-contactar'); updateBadges(); renderPendentes(); renderPipeline();
+  saveState(); fecharModal('modal-contactar'); updateBadges(); renderAprovadas(); renderPipeline();
   addActivity('Outreach enviado', c.nome, c.plataforma);
   showNotif('✓', c.nome+' entrou no pipeline');
 }
